@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D&D Encounters Library & Boss Tracker</title>
+  <style>
+    :root {
+      --bg-color: #0f0f12;
+      --card-bg: #1a1a20;
+      --accent: #8b0000;
+      --accent-hover: #b22222;
+      --accent-gold: #ffdd80;
+      --text: #e6e6e6;
+      --text-muted: #9c9ca6;
+      --border: #382828;
+      --border-subtle: #2b2b36;
+      --hp-bar: #c0392b;
+      --hp-bg: #4a1515;
+      --minion-bg: #202029;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Навігаційна панель */
+    .navbar {
+      background: #15151a;
+      border-bottom: 2px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    .nav-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-action {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: #24242e;
+      color: #ddd;
+      border: 1px solid #444;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #343442;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* ЕКРАН 1: БІБЛІОТЕКА */
+    .library-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .enc-card {
+      background: var(--card-bg);
+      border: 2px solid var(--border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .enc-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 25px rgba(139, 0, 0, 0.25);
+    }
+
+    .enc-cover {
+      height: 160px;
+      background: #111;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .enc-cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .enc-cover-fallback {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    /* Меню трьох крапок */
+    .kebab-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(18, 18, 22, 0.85);
+      border: 1px solid #444;
+      color: #fff;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+      z-index: 10;
+    }
+
+    .enc-card:hover .kebab-btn {
+      opacity: 1;
+    }
+
+    .kebab-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .kebab-dropdown {
+      position: absolute;
+      top: 44px;
+      right: 8px;
+      background: #1f1f27;
+      border: 1px solid #444;
+      border-radius: 6px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      display: none;
+      flex-direction: column;
+      width: 150px;
+      z-index: 20;
+      overflow: hidden;
+    }
+
+    .kebab-dropdown button {
+      background: transparent;
+      border: none;
+      color: #e0e0e0;
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kebab-dropdown button:hover {
+      background: #2d2d38;
+      color: #ffdd80;
+    }
+
+    .kebab-dropdown button.del-btn:hover {
+      background: #7a1515;
+      color: #fff;
+    }
+
+    .enc-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .enc-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent-gold);
+    }
+
+    .enc-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid #282833;
+    }
+
+    /* ЕКРАН 2: ТРЕКЕР БОЮ (РЕДАКТОР) */
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .bosses-scroller {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 16px;
+      scroll-behavior: smooth;
+      align-items: flex-start;
+    }
+
+    .bosses-scroller::-webkit-scrollbar {
+      height: 12px;
+    }
+
+    .bosses-scroller::-webkit-scrollbar-track {
+      background: #18181c;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .bosses-scroller::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 6px;
+    }
+
+    .bosses-scroller::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-hover);
+    }
+
+    .boss-card {
+      min-width: 540px;
+      max-width: 540px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-boss {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .btn-remove-boss:hover {
+      color: #ff4d4d;
+    }
+
+    .boss-header-block {
+      display: flex;
+      gap: 14px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      padding-right: 25px;
+    }
+
+    .boss-img-wrap {
+      width: 120px;
+      height: 120px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      background: #131317;
+      flex-shrink: 0;
+    }
+
+    .boss-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .boss-img-controls {
+      position: absolute;
+      bottom: 3px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .boss-img-controls label {
+      font-size: 10px;
+      background: var(--accent);
+      color: white;
+      padding: 2px 5px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+
+    .boss-details-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .boss-title-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--accent-gold);
+      font-size: 19px;
+      font-weight: bold;
+      outline: none;
+      width: 100%;
+    }
+
+    .boss-subtitle-input {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .stat-box {
+      background: #24242c;
+      border: 1px solid var(--border);
+      padding: 4px;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    .stat-box label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .stat-box input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+      outline: none;
+    }
+
+    /* HP Блок */
+    .hp-section {
+      background: #24242c;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .hp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .hp-inputs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .hp-input {
+      background: #18181b;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 2px;
+      width: 65px;
+      text-align: center;
+      border-radius: 4px;
+    }
+
+    .hp-bar-bg {
+      background: var(--hp-bg);
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .hp-bar-fill {
+      background: linear-gradient(90deg, #8b0000, #e74c3c);
+      height: 100%;
+      width: 100%;
+      transition: width 0.25s ease;
+    }
+
+    .hp-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .hp-btn {
+      background: #33333e;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .hp-btn:hover {
+      background: var(--accent);
+    }
+
+    .custom-dmg-input {
+      background: #18181b;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 3px;
+      width: 50px;
+      border-radius: 4px;
+      text-align: center;
+      outline: none;
+      font-size: 11px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      color: var(--accent-gold);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 3px;
+      margin: 10px 0 6px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-add-small {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 2px 6px;
+      font-size: 11px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .ability-card {
+      background: #18181e;
+      border-left: 3px solid var(--accent);
+      padding: 6px;
+      border-radius: 3px;
+      margin-bottom: 6px;
+      position: relative;
+    }
+
+    .ability-title {
+      background: transparent;
+      border: none;
+      color: #ff9999;
+      font-weight: bold;
+      font-size: 13px;
+      width: calc(100% - 22px);
+      outline: none;
+      margin-bottom: 3px;
+    }
+
+    .ability-desc {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 11px;
+      width: 100%;
+      resize: vertical;
+      min-height: 30px;
+      outline: none;
+    }
+
+    .btn-delete {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .btn-delete:hover {
+      color: #ff4d4d;
+    }
+
+    /* Секція міньйонів */
+    .minions-section {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+
+    .minions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .minion-card {
+      background: var(--minion-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .minion-name {
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed var(--border);
+      color: #ffd166;
+      font-weight: bold;
+      font-size: 13px;
+      width: calc(100% - 20px);
+      outline: none;
+    }
+
+    .minion-stats {
+      display: flex;
+      gap: 6px;
+    }
+
+    .minion-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #18181e;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .minion-stat input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      width: 30px;
+      text-align: center;
+      font-weight: bold;
+      outline: none;
+    }
+
+    .minion-hp-box {
+      background: #18181e;
+      padding: 5px;
+      border-radius: 4px;
+    }
+
+    .minion-hp-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .minion-hp-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-weight: bold;
+      width: 30px;
+      text-align: center;
+      outline: none;
+    }
+
+    .minion-hp-bar {
+      height: 5px;
+      background: var(--hp-bg);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+
+    .minion-hp-fill {
+      height: 100%;
+      background: #e74c3c;
+      width: 100%;
+      transition: width 0.2s;
+    }
+
+    .minion-actions {
+      display: flex;
+      gap: 3px;
+    }
+
+    .minion-actions button {
+      flex: 1;
+      background: #33333e;
+      border: none;
+      color: #fff;
+      padding: 2px 0;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .minion-actions button:hover {
+      background: var(--accent);
+    }
+
+    .minion-notes {
+      background: #18181e;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 4px;
+      border-radius: 3px;
+      resize: vertical;
+      min-height: 30px;
+      outline: none;
+    }
+
+    /* Модальне вікно редагування інформації енкаунтера */
+    .modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-box {
+      background: #1c1c24;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-box h3 {
+      color: var(--accent-gold);
+    }
+
+    .modal-input {
+      background: #121217;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Навігація -->
+  <header class="navbar">
+    <div class="nav-title">
+      <span>🐉 D&D Battle Vault</span>
+      <span id="nav-encounter-name" style="font-size: 14px; color: var(--text-muted); display: none;"></span>
+    </div>
+    <div style="display: flex; gap: 8px;" id="nav-buttons">
+      <!-- Динамічні кнопки навігації -->
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- ЕКРАН 1: КАТАЛОГ (БІБЛІОТЕКА) -->
+    <div id="view-library">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2>Бібліотека босфайтів</h2>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-secondary" onclick="exportFullDatabase()">💾 Експорт всієї бібліотеки</button>
+          <button class="btn-secondary" onclick="document.getElementById('import-db-input').click()">📂 Імпорт бібліотеки</button>
+          <input type="file" id="import-db-input" accept=".json" style="display:none;" onchange="importFullDatabase(event)" />
+          <button class="btn-action" onclick="createNewEncounter()">+ Створити енкаунтер</button>
+        </div>
+      </div>
+
+      <div class="library-grid" id="library-grid"></div>
+    </div>
+
+    <!-- ЕКРАН 2: ТРЕКЕР БОЮ -->
+    <div id="view-tracker" style="display: none;">
+      <div class="tracker-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="btn-secondary" onclick="switchToLibrary()">← Назад до бібліотеки</button>
+          <h2 id="tracker-title" style="color: var(--accent-gold);"></h2>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-secondary" onclick="exportCurrentEncounter()">💾 Експортувати бій</button>
+          <button class="btn-action" onclick="addNewBoss()">+ Новий бос (Праворуч)</button>
+        </div>
+      </div>
+
+      <!-- Горизонтальний скрол карток босів -->
+      <div class="bosses-scroller" id="bosses-scroller"></div>
+
+      <!-- Міньйони -->
+      <div class="minions-section">
+        <div class="section-title">
+          <span style="font-size: 15px;">Міньйони / Свита / Викликані істоти</span>
+          <button class="btn-action" onclick="addMinion()">+ Додати юніта</button>
+        </div>
+        <div class="minions-grid" id="minions-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Прихований файл-інпут для імпорту окремого бою -->
+  <input type="file" id="import-single-input" accept=".json" style="display:none;" onchange="importSingleEncounter(event)" />
+
+  <!-- МОДАЛЬНЕ ВІКНО РЕДАГУВАННЯ КАРТКИ В КАТАЛОЗІ -->
+  <div class="modal-backdrop" id="edit-modal">
+    <div class="modal-box">
+      <h3>Редагувати енкаунтер</h3>
+      <div>
+        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Назва бою / Енкаунтера</label>
+        <input type="text" id="modal-name" class="modal-input" />
+      </div>
+      <div>
+        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Обкладинка (URL або файл нижче)</label>
+        <input type="text" id="modal-img-url" class="modal-input" placeholder="https://..." />
+      </div>
+      <div>
+        <input type="file" id="modal-img-file" accept="image/*" onchange="handleModalFileUpload(event)" />
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button class="btn-secondary" onclick="closeEditModal()">Скасувати</button>
+        <button class="btn-action" onclick="saveEditModal()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // СХОВИЩЕ ВСІХ ЕНКАУНТЕРІВ
+    let appState = {
+      encounters: [],
+      activeId: null
+    };
+
+    let tempCoverBase64 = null;
+    let editingEncounterId = null;
+
+    // СТИСНЕННЯ ЗОБРАЖЕННЯ НА ЛЬОТУ
+    function compressImage(file, maxDim, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let w = img.width;
+          let h = img.height;
+          if (w > h && w > maxDim) {
+            h *= maxDim / w;
+            w = maxDim;
+          } else if (h > maxDim) {
+            w *= maxDim / h;
+            h = maxDim;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ЗБЕРЕЖЕННЯ / ВІДНОВЛЕННЯ З LOCALSTORAGE
+    function saveDatabase() {
+      try {
+        localStorage.setItem('dnd_vault_db', JSON.stringify(appState.encounters));
+      } catch (e) {
+        console.warn('Сховище переповнене, використовуйте файловий експорт.');
+      }
+    }
+
+    function loadDatabase() {
+      const raw = localStorage.getItem('dnd_vault_db');
+      if (raw) {
+        try {
+          appState.encounters = JSON.parse(raw);
+        } catch (e) {
+          appState.encounters = [];
+        }
+      }
+
+      if (!appState.encounters || appState.encounters.length === 0) {
+        // Додати приклад за замовчуванням
+        appState.encounters = [{
+          id: 'enc_' + Date.now(),
+          title: 'Лігво Стародавнього Тирана',
+          coverImg: '',
+          updatedAt: new Date().toLocaleDateString('uk-UA'),
+          bosses: [{
+            name: 'Стародавній Тиран',
+            type: 'Величезний дракон / Нежить',
+            ac: 18,
+            init: '+3',
+            speed: '40 фт',
+            legRes: '3/3',
+            hpCur: 250,
+            hpMax: 250,
+            img: '',
+            traits: [{ title: 'Легендарний Опір (3/день)', desc: 'Якщо бос провалює спас-кидок, може вибрати успіх.' }],
+            actions: [{ title: 'Мультиатака', desc: 'Робить три атаки: одну укусом та дві кігтями.' }]
+          }],
+          minions: [
+            { name: 'Культист-вартовий', ac: 13, init: '+1', hpCur: 22, hpMax: 22, notes: 'Кинджал +4 (1d4+2)' }
+          ]
+        }];
+        saveDatabase();
+      }
+      renderLibrary();
+    }
+
+    // ПЕРЕМИКАННЯ ЕКРАНІВ
+    function switchToLibrary() {
+      if (appState.activeId) {
+        syncTrackerToState();
+      }
+      appState.activeId = null;
+      document.getElementById('view-library').style.display = 'block';
+      document.getElementById('view-tracker').style.display = 'none';
+      document.getElementById('nav-encounter-name').style.display = 'none';
+      renderLibrary();
+    }
+
+    function openEncounter(id) {
+      appState.activeId = id;
+      const enc = appState.encounters.find(e => e.id === id);
+      if (!enc) return;
+
+      document.getElementById('view-library').style.display = 'none';
+      document.getElementById('view-tracker').style.display = 'block';
+      document.getElementById('tracker-title').textContent = enc.title;
+      
+      const navSubtitle = document.getElementById('nav-encounter-name');
+      navSubtitle.textContent = '— ' + enc.title;
+      navSubtitle.style.display = 'inline';
+
+      renderTracker(enc);
+    }
+
+    // РЕНДЕР КАТАЛОГУ (БІБЛІОТЕКИ)
+    function renderLibrary() {
+      const grid = document.getElementById('library-grid');
+      grid.innerHTML = '';
+
+      appState.encounters.forEach(enc => {
+        const card = document.createElement('div');
+        card.className = 'enc-card';
+        card.onclick = (e) => {
+          // Якщо клікнули не по кнопці трьох крапок чи меню
+          if (!e.target.closest('.kebab-wrapper')) {
+            openEncounter(enc.id);
+          }
+        };
+
+        const bossesCount = enc.bosses ? enc.bosses.length : 0;
+        const minionsCount = enc.minions ? enc.minions.length : 0;
+
+        card.innerHTML = `
+          <div class="enc-cover">
+            ${enc.coverImg ? `<img src="${enc.coverImg}" alt="${enc.title}" />` : `<span class="enc-cover-fallback">Немає обкладинки</span>`}
+            
+            <div class="kebab-wrapper" style="position: static;">
+              <button class="kebab-btn" title="Опції" onclick="toggleKebab(event, '${enc.id}')">•••</button>
+              <div class="kebab-dropdown" id="dropdown-${enc.id}">
+                <button onclick="openEditModal(event, '${enc.id}')">✏️ Редагувати</button>
+                <button onclick="exportSingleEncounterById(event, '${enc.id}')">💾 Експорт бою</button>
+                <button class="del-btn" onclick="deleteEncounter(event, '${enc.id}')">🗑️ Видалити</button>
+              </div>
+            </div>
+          </div>
+          <div class="enc-body">
+            <div class="enc-title">${enc.title}</div>
+            <div class="enc-meta">
+              <span>Босів: ${bossesCount} | Свита: ${minionsCount}</span>
+              <span>${enc.updatedAt || ''}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // МЕНЮ ТРЬОХ КРАПОК
+    function toggleKebab(e, id) {
+      e.stopPropagation();
+      // Закрити всі інші
+      document.querySelectorAll('.kebab-dropdown').forEach(d => {
+        if (d.id !== 'dropdown-' + id) d.style.display = 'none';
+      });
+
+      const drop = document.getElementById('dropdown-' + id);
+      drop.style.display = drop.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    // Закриття меню при кліку будь-де на сторінці
+    window.addEventListener('click', () => {
+      document.querySelectorAll('.kebab-dropdown').forEach(d => d.style.display = 'none');
+    });
+
+    // СТВОРЕННЯ НОВОГО ЕНКАУНТЕРА
+    function createNewEncounter() {
+      const name = prompt('Введіть назву для нового босфайту/енкаунтера:', 'Новий босфайт');
+      if (!name) return;
+
+      const newEnc = {
+        id: 'enc_' + Date.now(),
+        title: name,
+        coverImg: '',
+        updatedAt: new Date().toLocaleDateString('uk-UA'),
+        bosses: [{
+          name: 'Головний Бос',
+          type: 'Тип / Розмір',
+          ac: 15,
+          init: '+2',
+          speed: '30 фт',
+          legRes: '3/3',
+          hpCur: 120,
+          hpMax: 120,
+          img: '',
+          traits: [{ title: 'Особливість', desc: 'Опис властивості...' }],
+          actions: [{ title: 'Атака', desc: 'Опис дії...' }]
+        }],
+        minions: []
+      };
+
+      appState.encounters.unshift(newEnc);
+      saveDatabase();
+      renderLibrary();
+      openEncounter(newEnc.id);
+    }
+
+    // ВИДАЛЕННЯ ЕНКАУНТЕРА
+    function deleteEncounter(e, id) {
+      e.stopPropagation();
+      if (confirm('Видалити цей енкаунтер із бібліотеки назавжди?')) {
+        appState.encounters = appState.encounters.filter(x => x.id !== id);
+        saveDatabase();
+        renderLibrary();
+      }
+    }
+
+    // РЕДАГУВАННЯ НАЗВИ ТА ОБКЛАДИНКИ КАРТКИ В БІБЛІОТЕЦІ
+    function openEditModal(e, id) {
+      e.stopPropagation();
+      editingEncounterId = id;
+      const enc = appState.encounters.find(x => x.id === id);
+      if (!enc) return;
+
+      document.getElementById('modal-name').value = enc.title;
+      document.getElementById('modal-img-url').value = enc.coverImg.startsWith('http') ? enc.coverImg : '';
+      tempCoverBase64 = enc.coverImg;
+      document.getElementById('modal-img-file').value = '';
+
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function handleModalFileUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        compressImage(file, 400, function(compactBase64) {
+          tempCoverBase64 = compactBase64;
+          document.getElementById('modal-img-url').value = '';
+        });
+      }
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+      editingEncounterId = null;
+      tempCoverBase64 = null;
+    }
+
+    function saveEditModal() {
+      if (!editingEncounterId) return;
+      const enc = appState.encounters.find(x => x.id === editingEncounterId);
+      if (enc) {
+        enc.title = document.getElementById('modal-name').value.trim() || 'Без назви';
+        const urlVal = document.getElementById('modal-img-url').value.trim();
+        if (urlVal) {
+          enc.coverImg = urlVal;
+        } else if (tempCoverBase64) {
+          enc.coverImg = tempCoverBase64;
+        }
+        enc.updatedAt = new Date().toLocaleDateString('uk-UA');
+        saveDatabase();
+        renderLibrary();
+      }
+      closeEditModal();
+    }
+
+    // РЕНДЕР ТРЕКЕРА (АКТИВНОГО ЕНКАУНТЕРА)
+    const scroller = document.getElementById('bosses-scroller');
+    scroller.addEventListener('wheel', (evt) => {
+      if (evt.deltaY !== 0) {
+        evt.preventDefault();
+        scroller.scrollLeft += evt.deltaY;
+      }
+    });
+
+    function renderTracker(enc) {
+      scroller.innerHTML = '';
+      document.getElementById('minions-container').innerHTML = '';
+
+      if (enc.bosses && enc.bosses.length > 0) {
+        enc.bosses.forEach(b => buildBossDom(b));
+      } else {
+        addNewBoss();
+      }
+
+      if (enc.minions && enc.minions.length > 0) {
+        enc.minions.forEach(m => buildMinionDom(m));
+      }
+    }
+
+    function buildBossDom(b) {
+      const id = 'boss_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const card = document.createElement('div');
+      card.className = 'boss-card';
+      card.id = id;
+
+      card.innerHTML = `
+        <button class="btn-remove-boss" title="Видалити" onclick="removeBoss('${id}')">×</button>
+        <div class="boss-header-block">
+          <div class="boss-img-wrap">
+            <span class="img-placeholder" style="color: var(--text-muted); font-size: 11px; ${b.img ? 'display:none;' : ''}">Немає арту</span>
+            <img class="boss-img-elem" alt="Бос" src="${b.img || ''}" style="${b.img ? 'display:block;' : ''}" />
+            <div class="boss-img-controls">
+              <label>Файл
+                <input type="file" accept="image/*" style="display: none;" onchange="handleBossImageUpload(event, '${id}')" />
+              </label>
+            </div>
+          </div>
+
+          <div class="boss-details-right">
+            <input class="boss-title-input b-name" value="${b.name}" oninput="syncTrackerToState()" />
+            <input class="boss-subtitle-input b-type" value="${b.type}" oninput="syncTrackerToState()" />
+
+            <div class="stats-bar">
+              <div class="stat-box">
+                <label>КД (AC)</label>
+                <input type="number" class="b-ac" value="${b.ac}" oninput="syncTrackerToState()" />
+              </div>
+              <div class="stat-box">
+                <label>Ініц.</label>
+                <input type="text" class="b-init" value="${b.init}" oninput="syncTrackerToState()" />
+              </div>
+              <div class="stat-box">
+                <label>Швидк.</label>
+                <input type="text" class="b-speed" value="${b.speed}" oninput="syncTrackerToState()" />
+              </div>
+              <div class="stat-box">
+                <label>Лег. Опори</label>
+                <input type="text" class="b-legres" value="${b.legRes}" oninput="syncTrackerToState()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hp-section">
+          <div class="hp-header">
+            <span style="font-weight: bold; color: #ff9999; font-size: 13px;">Хітпоінти (HP)</span>
+            <div class="hp-inputs">
+              <input type="number" class="hp-input b-hp-cur" value="${b.hpCur}" oninput="updateBossHpVisuals('${id}')" />
+              <span>/</span>
+              <input type="number" class="hp-input b-hp-max" value="${b.hpMax}" oninput="updateBossHpVisuals('${id}')" />
+            </div>
+          </div>
+
+          <div class="hp-bar-bg">
+            <div class="hp-bar-fill b-hp-fill"></div>
+          </div>
+
+          <div class="hp-controls">
+            <button class="hp-btn" onclick="adjustBossHp('${id}', -10)">-10</button>
+            <button class="hp-btn" onclick="adjustBossHp('${id}', -1)">-1</button>
+            <button class="hp-btn" onclick="adjustBossHp('${id}', 1)">+1</button>
+            <button class="hp-btn" onclick="adjustBossHp('${id}', 10)">+10</button>
+            <input type="number" class="custom-dmg-input b-hp-custom" placeholder="Числ." />
+            <button class="hp-btn" onclick="applyCustomBossHp('${id}', -1)">Шкода</button>
+            <button class="hp-btn" onclick="applyCustomBossHp('${id}', 1)">Лік.</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span>Пасивні риси & Особливості</span>
+            <button class="btn-add-small" onclick="addBossAbility('${id}', 'traits')">+ Риса</button>
+          </div>
+          <div class="b-traits-container"></div>
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span>Дії & Легендарні дії</span>
+            <button class="btn-add-small" onclick="addBossAbility('${id}', 'actions')">+ Дія</button>
+          </div>
+          <div class="b-actions-container"></div>
+        </div>
+      `;
+
+      scroller.appendChild(card);
+
+      if (b.traits) b.traits.forEach(t => addBossAbility(id, 'traits', t.title, t.desc));
+      if (b.actions) b.actions.forEach(a => addBossAbility(id, 'actions', a.title, a.desc));
+
+      updateBossHpVisuals(id);
+    }
+
+    function addNewBoss() {
+      buildBossDom({
+        name: 'Новий бос',
+        type: 'Тип / Розмір',
+        ac: 15,
+        init: '+2',
+        speed: '30 фт',
+        legRes: '3/3',
+        hpCur: 100,
+        hpMax: 100,
+        img: '',
+        traits: [{ title: 'Особливість', desc: 'Опис ефекту...' }],
+        actions: [{ title: 'Атака', desc: '1d10 шкоди...' }]
+      });
+      syncTrackerToState();
+      setTimeout(() => scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' }), 50);
+    }
+
+    function removeBoss(id) {
+      if (confirm('Видалити цього боса з бою?')) {
+        document.getElementById(id).remove();
+        syncTrackerToState();
+      }
+    }
+
+    function handleBossImageUpload(e, bossId) {
+      const file = e.target.files[0];
+      if (file) {
+        compressImage(file, 400, function(compactBase64) {
+          const card = document.getElementById(bossId);
+          const img = card.querySelector('.boss-img-elem');
+          img.src = compactBase64;
+          img.style.display = 'block';
+          card.querySelector('.img-placeholder').style.display = 'none';
+          syncTrackerToState();
+        });
+      }
+    }
+
+    function adjustBossHp(bossId, delta) {
+      const card = document.getElementById(bossId);
+      const curInput = card.querySelector('.b-hp-cur');
+      let val = parseInt(curInput.value) || 0;
+      curInput.value = Math.max(0, val + delta);
+      updateBossHpVisuals(bossId);
+    }
+
+    function applyCustomBossHp(bossId, multiplier) {
+      const card = document.getElementById(bossId);
+      const customInput = card.querySelector('.b-hp-custom');
+      const amount = parseInt(customInput.value);
+      if (!isNaN(amount) && amount > 0) {
+        adjustBossHp(bossId, amount * multiplier);
+        customInput.value = '';
+      }
+    }
+
+    function updateBossHpVisuals(bossId) {
+      const card = document.getElementById(bossId);
+      const cur = parseInt(card.querySelector('.b-hp-cur').value) || 0;
+      const max = parseInt(card.querySelector('.b-hp-max').value) || 1;
+      const fill = card.querySelector('.b-hp-fill');
+      const pct = Math.min(100, Math.max(0, (cur / max) * 100));
+      fill.style.width = pct + '%';
+      syncTrackerToState();
+    }
+
+    function addBossAbility(bossId, type, title = 'Нова дія', desc = 'Опис дії...') {
+      const card = document.getElementById(bossId);
+      const container = card.querySelector(type === 'traits' ? '.b-traits-container' : '.b-actions-container');
+      const ability = document.createElement('div');
+      ability.className = 'ability-card';
+      ability.innerHTML = `
+        <button class="btn-delete" onclick="this.parentElement.remove(); syncTrackerToState();">×</button>
+        <input class="ability-title" value="${title}" oninput="syncTrackerToState()" />
+        <textarea class="ability-desc" oninput="syncTrackerToState()">${desc}</textarea>
+      `;
+      container.appendChild(ability);
+      syncTrackerToState();
+    }
+
+    // МІНЬЙОНИ В ТРЕКЕРІ
+    function buildMinionDom(d) {
+      const container = document.getElementById('minions-container');
+      const card = document.createElement('div');
+      card.className = 'minion-card';
+
+      card.innerHTML = `
+        <button class="btn-delete" onclick="this.parentElement.remove(); syncTrackerToState();">×</button>
+        <input class="minion-name" value="${d.name}" oninput="syncTrackerToState()" />
+        <div class="minion-stats">
+          <div class="minion-stat">
+            <span>КД:</span>
+            <input type="number" class="minion-ac" value="${d.ac}" oninput="syncTrackerToState()" />
+          </div>
+          <div class="minion-stat">
+            <span>Ініц:</span>
+            <input type="text" class="minion-init" value="${d.init}" oninput="syncTrackerToState()" />
+          </div>
+        </div>
+        <div class="minion-hp-box">
+          <div class="minion-hp-header">
+            <span>HP:</span>
+            <div>
+              <input type="number" class="minion-hp-input m-cur" value="${d.hpCur}" oninput="updateMinionHp(this)" /> /
+              <input type="number" class="minion-hp-input m-max" value="${d.hpMax}" oninput="updateMinionHp(this)" />
+            </div>
+          </div>
+          <div class="minion-hp-bar">
+            <div class="minion-hp-fill"></div>
+          </div>
+          <div class="minion-actions">
+            <button onclick="modMinionHp(this, -5)">-5</button>
+            <button onclick="modMinionHp(this, -1)">-1</button>
+            <button onclick="modMinionHp(this, 1)">+1</button>
+            <button onclick="modMinionHp(this, 5)">+5</button>
+          </div>
+        </div>
+        <textarea class="minion-notes" placeholder="Статус або атаки..." oninput="syncTrackerToState()">${d.notes}</textarea>
+      `;
+
+      container.appendChild(card);
+      updateMinionHp(card.querySelector('.m-cur'));
+    }
+
+    function addMinion() {
+      const container = document.getElementById('minions-container');
+      buildMinionDom({
+        name: 'Міньйон #' + (container.children.length + 1),
+        ac: 12,
+        init: '+1',
+        hpCur: 15,
+        hpMax: 15,
+        notes: 'Коротка атака: +3 до влучання, 1d6 шкоди'
+      });
+      syncTrackerToState();
+    }
+
+    function modMinionHp(btn, delta) {
+      const card = btn.closest('.minion-card');
+      const curInput = card.querySelector('.m-cur');
+      let val = parseInt(curInput.value) || 0;
+      curInput.value = Math.max(0, val + delta);
+      updateMinionHp(curInput);
+    }
+
+    function updateMinionHp(elem) {
+      const card = elem.closest('.minion-card');
+      const cur = parseInt(card.querySelector('.m-cur').value) || 0;
+      const max = parseInt(card.querySelector('.m-max').value) || 1;
+      const fill = card.querySelector('.minion-hp-fill');
+      const pct = Math.min(100, Math.max(0, (cur / max) * 100));
+      fill.style.width = pct + '%';
+      syncTrackerToState();
+    }
+
+    // СИНХРОНІЗАЦІЯ ДАНИХ З ТРЕКЕРА В СХОВИЩЕ
+    function syncTrackerToState() {
+      if (!appState.activeId) return;
+      const enc = appState.encounters.find(e => e.id === appState.activeId);
+      if (!enc) return;
+
+      const bosses = Array.from(document.querySelectorAll('.boss-card')).map(card => {
+        const img = card.querySelector('.boss-img-elem');
+        return {
+          name: card.querySelector('.b-name').value,
+          type: card.querySelector('.b-type').value,
+          ac: card.querySelector('.b-ac').value,
+          init: card.querySelector('.b-init').value,
+          speed: card.querySelector('.b-speed').value,
+          legRes: card.querySelector('.b-legres').value,
+          hpCur: card.querySelector('.b-hp-cur').value,
+          hpMax: card.querySelector('.b-hp-max').value,
+          img: img.style.display === 'block' ? img.src : '',
+          traits: Array.from(card.querySelectorAll('.b-traits-container .ability-card')).map(a => ({
+            title: a.querySelector('.ability-title').value,
+            desc: a.querySelector('.ability-desc').value
+          })),
+          actions: Array.from(card.querySelectorAll('.b-actions-container .ability-card')).map(a => ({
+            title: a.querySelector('.ability-title').value,
+            desc: a.querySelector('.ability-desc').value
+          }))
+        };
+      });
+
+      const minions = Array.from(document.querySelectorAll('.minion-card')).map(m => ({
+        name: m.querySelector('.minion-name').value,
+        ac: m.querySelector('.minion-ac').value,
+        init: m.querySelector('.minion-init').value,
+        hpCur: m.querySelector('.m-cur').value,
+        hpMax: m.querySelector('.m-max').value,
+        notes: m.querySelector('.minion-notes').value
+      }));
+
+      enc.bosses = bosses;
+      enc.minions = minions;
+      enc.updatedAt = new Date().toLocaleDateString('uk-UA');
+
+      // Якщо обкладинки не було, але додано фото першого боса — автоматично ставимо на обкладинку
+      if (!enc.coverImg && bosses.length > 0 && bosses[0].img) {
+        enc.coverImg = bosses[0].img;
+      }
+
+      saveDatabase();
+    }
+
+    // ЕКСПОРТ ТА ІМПОРТ ФАЙЛІВ
+
+    // 1. Експорт лише поточного або вибраного бою
+    function exportSingleEncounterById(e, id) {
+      if (e) e.stopPropagation();
+      const enc = appState.encounters.find(x => x.id === id);
+      if (!enc) return;
+      downloadJson(enc, `encounter-${enc.title.replace(/\s+/g, '_')}.json`);
+    }
+
+    function exportCurrentEncounter() {
+      if (!appState.activeId) return;
+      syncTrackerToState();
+      exportSingleEncounterById(null, appState.activeId);
+    }
+
+    // 2. Експорт усієї бази (каталогу)
+    function exportFullDatabase() {
+      if (appState.activeId) syncTrackerToState();
+      downloadJson(appState.encounters, `dnd-library-${new Date().toISOString().slice(0,10)}.json`);
+    }
+
+    function downloadJson(obj, filename) {
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 3. Імпорт всієї бази або окремого файлу
+    function importFullDatabase(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (Array.isArray(parsed)) {
+            appState.encounters = parsed;
+          } else if (parsed.id && parsed.title) {
+            // Якщо випадково завантажили окремий енкаунтер через кнопку бази
+            appState.encounters.unshift(parsed);
+          }
+          saveDatabase();
+          renderLibrary();
+          alert('Бібліотека успішно оновлена!');
+        } catch (err) {
+          alert('Помилка при читанні JSON-файлу.');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    window.onload = loadDatabase;
+  </script>
+</body>
+</html>
